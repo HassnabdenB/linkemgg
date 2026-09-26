@@ -1,0 +1,23 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تشفير بالإيموجي</title>
+<style>
+body{margin:0;background:#f2f4f7;font-family:Arial,sans-serif;color:#111827}.wrap{max-width:620px;margin:30px auto;padding:16px}.card{background:#fff;border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 5px 20px #0001}h1,h2{text-align:center}label{display:block;font-weight:bold;margin:15px 0 7px}textarea,input,button{width:100%;box-sizing:border-box;font:inherit;border-radius:11px}textarea,input{border:1px solid #d1d5db;padding:12px}textarea{min-height:105px}button{border:0;padding:13px;margin-top:13px;background:#111827;color:#fff;cursor:pointer}.out{margin-top:15px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:15px;word-break:break-word}.emoji{font-size:28px;line-height:1.8;text-align:center;direction:ltr}.note{text-align:center;color:#6b7280;font-size:13px}
+</style></head><body><div class="wrap">
+<div class="card"><h1>🔐 تشفير الرسائل</h1><p class="note">ضغط + تشفير + تحويل إلى أقل عدد عملي من الإيموجي.</p>
+<label>الرسالة</label><textarea id="plain" placeholder="أهلا فلان"></textarea><label>كلمة السر</label><input id="pass" type="password"><button id="enc">🔒 تشفير</button>
+<div id="box" class="out" style="display:none"><b>الرسالة المشفرة:</b><div id="em" class="emoji"></div><button id="copy">📋 نسخ</button></div></div>
+<div class="card"><h2>🔓 فك التشفير</h2><label>الإيموجي المشفر</label><textarea id="cipher" placeholder="الصق الإيموجي هنا"></textarea><label>كلمة السر</label><input id="dpass" type="password"><button id="dec">🔓 فك التشفير</button><div id="result" class="out" style="display:none"></div></div>
+</div>
+<script>
+const te=new TextEncoder(),td=new TextDecoder();
+const list=[..."😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😝😜🤪🤨🧐🤓😎🤩🥳😏😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤😠😡🤬🤯😳🥵🥶😱😨😰😥😓🤗🤔🤭🤫🤥😶😐😑😬🙄😯😦😧😮😲🥱😴🤤😪😵🤐🥴🤢🤮🤧😷🤒🤕🤑🤠👻💀☠️👽👾🤖🎃😺😸😹😻😼😽🙀😿😾🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯🦁🐮🐷🐸🐵🙈🙉🙊🐔🐧🐦🐤🦄🐝🦋🐌🐞🐜🕷️🐢🐍🦎🦂🐙🦑🐠🐟🐡🦈🐳🐋🐊🐅🐆🦓🦍🐘🦏🐪🐫🦒🦘🦬🐄🐎🐖🐏🐑🦙🐐🐕🐈🐓🦃🕊️🐇🐁🐀🐿️🦔🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍈🍒🍑🥭🍍🥥🥝🍅🥑🥕🌽🌶️🥒🥬🥦🧄🧅🥔🍞🥐🥨🧀🍕🍔🍟🌭🌮🍿🍩🍪🎂🍰🍫🍭🍬🍯☀️🌙⭐🌟✨⚡🔥🌈☁️❄️🌊🌸🌹🌻🌺🌷🌴🌵🍀🍁🍂🍃🌱🌲🌳🌍🌎🌏🚀✈️🚗🚕🚓🚑🚒🚲⚽🏀🏈⚾🎾🎯🎮🎲🎵🎶🎸🎹🎁🎈❤️🧡💛💚💙💜🖤🤍🤎💔💕💞💓💗💖💘💝💟❣️💯💢💥💫💦💨🕶️🔑🔒🔓🔐💡📱💻🖥️📷🔔📌✏️📚🔗"];
+const mp=new Map(list.map((x,i)=>[x,i]));
+function toE(b){return [...b].map(x=>list[x]).join("")}function fromE(s){let a=[];for(let c of [...s].filter(x=>!/\s/.test(x))){if(!mp.has(c))throw 0;a.push(mp.get(c))}return new Uint8Array(a)}
+async function key(p,s){let b=await crypto.subtle.importKey("raw",te.encode(p),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt:s,iterations:120000,hash:"SHA-256"},b,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function comp(x){try{let c=new CompressionStream("deflate-raw"),w=c.writable.getWriter();w.write(x);w.close();return new Uint8Array(await new Response(c.readable).arrayBuffer())}catch(e){return x}}
+async function decomp(x){try{let c=new DecompressionStream("deflate-raw"),w=c.writable.getWriter();w.write(x);w.close();return new Uint8Array(await new Response(c.readable).arrayBuffer())}catch(e){return x}}
+async function encText(t,p){let s=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),k=await key(p,s),x=await comp(te.encode(t)),c=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k,x)),a=new Uint8Array(29+c.length);a.set(s,0);a.set(iv,16);a.set(c,28);return toE(a)}
+async function decText(t,p){let a=fromE(t);if(a.length<30)throw 0;let k=await key(p,a.slice(0,16)),x=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:a.slice(16,28)},k,a.slice(28)));return td.decode(await decomp(x))}
+enc.onclick=async()=>{if(!plain.value||!pass.value)return alert("اكتب الرسالة وكلمة السر");try{em.textContent=await encText(plain.value,pass.value);box.style.display="block"}catch(e){alert("حدث خطأ")}};
+copy.onclick=async()=>{await navigator.clipboard.writeText(em.textContent);alert("تم النسخ")};
+dec.onclick=async()=>{try{result.style.display="block";result.textContent="الرسالة الأصلية: "+await decText(cipher.value,dpass.value)}catch(e){result.style.display="block";result.textContent="كلمة السر غير صحيحة أو النص غير صالح"}};
+</script></body></html>
